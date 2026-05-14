@@ -7,7 +7,7 @@ import { caddyApi } from '../../services/caddyApi'
 const route = useRoute()
 const serverStore = useServerStore()
 
-const serverUrl = ref('http://127.0.0.1:19000/')
+const serverUrl = ref('/api/')
 const isConnected = ref(false)
 
 const pageTitle = computed(() => {

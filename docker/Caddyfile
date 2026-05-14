@@ -1,0 +1,28 @@
+{
+     admin :2019 {
+        origins localhost:5173
+    }
+}
+
+# 使用环境变量指定域名，如果没有设置该变量，默认使用 localhost
+{$DOMAIN:localhost} {
+    root * /app/manager/html
+
+    # 2. 启用静态文件服务
+    file_server
+
+    basicauth /* {
+        # 格式为：用户名 加密后的密码
+        # 将下面的用户名和刚才生成的哈希密码替换为你自己的
+        admin $2y$/0jWGneVLlDFLRcnWtC.k.lB/V.lTpH9Tderk7gH5HK6Lo8sIDVLW
+    }
+
+    # 反向代理的地址也从环境变量中读取
+    handle /load /stop /config/* {
+        # 可以在这里统一添加一些请求头
+        header_up X-Forwarded-Proto {scheme}
+        # 统一代理到同一个上游端口
+        reverse_proxy {$UPSTREAM_ADDR:127.0.0.1:2019}
+    }
+
+}
