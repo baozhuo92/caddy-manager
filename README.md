@@ -116,9 +116,8 @@ docker run -itd --net=host -e DOMAIN=caddy.xxxxx.com --name caddy-manager --rest
 
 > ⚠️ 将 `DOMAIN=caddy.xxxxx.com` 换成你自己的域名。
 
-
-### 默认管理账号                                                                                                           119 + ### 修改管理密码                                                                                                                                                      
-- **用户名**: admin                                                                                                        120 +                                                                                                                                                                       
+### 默认管理账号
+- **用户名**: admin
 - **密码**: HmxRVs2TFax4SUb5RFJbTysRt4Pu38Vr
 
 ### 修改管理密码
