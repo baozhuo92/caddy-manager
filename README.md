@@ -76,14 +76,6 @@ src/
     └── Proxy.vue
 ```
 
-## 待开发内容
-
-- **反向代理站点管理** — 完整的站点级 CRUD：新增、修改、删除反向代理站点配置（域名、上游服务器、TLS、健康检查等）
-- **页面功能 BUG 修复** — 各模块交互细节优化与异常处理
-- **配置导入/导出** — 可视化对比、历史版本管理
-- **日志实时查看** — 对接 Caddy 日志端点
-- **暗色模式** — 跟随系统 / 手动切换
-
 ## API 端点覆盖
 
 - [x] `GET /config/[path]` — 导出配置
@@ -107,6 +99,41 @@ src/
 
 
 
-### 管理页面
-- 默认账号:admin
-- 默认密码：HmxRVs2TFax4SUb5RFJbTysRt4Pu38Vr
+
+
+## Docker 部署
+
+```bash
+# 1. 打包前端
+npm run build
+
+# 2. 构建镜像（项目根目录执行）
+docker build -t caddy_manager .
+
+# 3. 运行容器（将域名换成你自己的域名）
+docker run -itd --net=host -e DOMAIN=caddy.xxxxx.com --name caddy-manager --restart always caddy_manager
+```
+
+> ⚠️ 将 `DOMAIN=caddy.xxxxx.com` 换成你自己的域名。
+
+
+### 默认管理账号                                                                                                           119 + ### 修改管理密码                                                                                                                                                      
+- **用户名**: admin                                                                                                        120 +                                                                                                                                                                       
+- **密码**: HmxRVs2TFax4SUb5RFJbTysRt4Pu38Vr
+
+### 修改管理密码
+
+1. 生成密码密文：[caddy下载地址](!https://caddyserver.com/download)
+```bash
+caddy hash-password --plaintext "你的明文密码"
+```
+
+
+2. 将生成的密文替换到 `docker/Caddyfile` 中 `basic_auth` 块的内容：
+```caddyfile
+basic_auth {
+    admin 替换这里为生成的密文
+}
+```
+
+3. 重新构建镜像并运行。
