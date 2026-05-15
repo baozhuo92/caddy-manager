@@ -1,6 +1,5 @@
 <script setup>
 import { ref, watch } from 'vue'
-import Card from '../common/Card.vue'
 import Btn from '../common/Btn.vue'
 import Input from '../common/Input.vue'
 
@@ -122,7 +121,7 @@ watch(form, () => {
 </script>
 
 <template>
-  <Card :title="site ? '编辑站点' : '新建站点'" class="site-form">
+  <div class="site-form">
     <div class="tabs">
       <button class="tab" :class="{ active: tab === 'basic' }" @click="tab = 'basic'">基础</button>
       <button class="tab" :class="{ active: tab === 'routes' }" @click="tab = 'routes'">路由</button>
@@ -133,21 +132,24 @@ watch(form, () => {
 
     <div class="form-body">
       <div v-show="tab === 'basic'" class="form-section">
-        <Input v-model="form.domain" label="域名（可选）" placeholder="例如: example.com" />
-        <div class="field-row">
-          <div class="field-group flex-1">
-            <label class="field-label">端口（可选）</label>
-            <div class="field-hint">留空默认 80/443，不设域名仅端口则监听 `:端口`</div>
-            <Input v-model="form.port" placeholder="例如: 19000" />
-          </div>
-          <div class="field-group flex-1">
-            <label class="field-label">协议</label>
-            <select v-model="form.scheme" class="select">
-              <option value="">HTTP / HTTPS (全部)</option>
-              <option value="http">仅 HTTP</option>
-              <option value="https">仅 HTTPS</option>
-            </select>
-          </div>
+        <p class="required-hint">* 至少需要填写域名或端口</p>
+        <div class="field-group">
+          <label class="field-label">域名</label>
+          <Input v-model="form.domain" placeholder="例如: example.com" />
+          <span class="field-hint">留空则仅监听端口</span>
+        </div>
+        <div class="field-group">
+          <label class="field-label">端口</label>
+          <Input v-model="form.port" placeholder="例如: 19000" />
+          <span class="field-hint">留空则默认 80/443，不设域名仅端口则监听 `:端口`</span>
+        </div>
+        <div class="field-group">
+          <label class="field-label">协议</label>
+          <select v-model="form.scheme" class="select">
+            <option value="">HTTP / HTTPS (全部)</option>
+            <option value="http">仅 HTTP</option>
+            <option value="https">仅 HTTPS</option>
+          </select>
         </div>
       </div>
 
@@ -162,10 +164,13 @@ watch(form, () => {
             <button class="remove-btn" @click="removeRouteEntry(eIdx)" v-if="form.routeEntries.length > 1">×</button>
           </div>
           <div class="route-body">
-            <Input v-model="entry.path" placeholder='匹配路径，例如 /api/*（留空匹配全部）' />
-            <label class="checkbox-label" style="margin:4px 0">
+            <div class="field-group">
+              <label class="field-label">匹配路径</label>
+              <Input v-model="entry.path" placeholder='例如 /api/*（留空匹配全部）' />
+            </div>
+            <label class="checkbox-label">
               <input type="checkbox" v-model="entry.websocket" />
-              <span>WebSocket</span>
+              <span>WebSocket 支持</span>
             </label>
             <div class="sub-section-header">
               <span class="sub-label">上游服务器</span>
@@ -193,8 +198,14 @@ watch(form, () => {
             <Input v-model="form.cors.origins[idx]" placeholder="* 或 https://example.com" />
             <button class="remove-btn" @click="removeCorsOrigin(idx)" v-if="form.cors.origins.length > 1">×</button>
           </div>
-          <Input v-model="form.cors.methods" label="允许的方法 (逗号分隔)" placeholder="GET, POST, PUT, DELETE, OPTIONS" />
-          <Input v-model="form.cors.headers" label="允许的请求头 (逗号分隔)" placeholder="Content-Type, Authorization" />
+          <div class="field-group">
+            <label class="field-label">允许的方法 (逗号分隔)</label>
+            <Input v-model="form.cors.methods" placeholder="GET, POST, PUT, DELETE, OPTIONS" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">允许的请求头 (逗号分隔)</label>
+            <Input v-model="form.cors.headers" placeholder="Content-Type, Authorization" />
+          </div>
           <label class="checkbox-label">
             <input type="checkbox" v-model="form.cors.credentials" />
             <span>允许携带凭证 (Credentials)</span>
@@ -253,42 +264,227 @@ watch(form, () => {
         {{ site ? '保存修改' : '创建站点' }}
       </Btn>
     </div>
-  </Card>
+  </div>
 </template>
 
 <style scoped>
-.site-form { max-width: 700px; }
-.tabs { display: flex; border-bottom: 2px solid var(--color-border); margin-bottom: 20px; }
-.tab { padding: 10px 16px; border: none; background: none; font-size: 14px; font-weight: 500; cursor: pointer; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
-.tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
-.form-body { display: flex; flex-direction: column; gap: 12px; min-height: 200px; }
-.form-section { display: flex; flex-direction: column; gap: 12px; }
-.field-row { display: flex; gap: 12px; }
-.flex-1 { flex: 1; }
-.field-group { display: flex; flex-direction: column; gap: 6px; }
-.field-label { font-size: 14px; font-weight: 500; color: var(--color-text); }
-.field-hint { font-size: 11px; color: #94a3b8; }
-.select { padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 14px; background: var(--color-surface); }
-.select:focus { outline: none; border-color: var(--color-primary); }
-.checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
-.section-header { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
-.section-title { font-size: 14px; font-weight: 600; color: var(--color-text); }
-.array-item { display: flex; gap: 8px; align-items: flex-start; }
-.array-item > * { flex: 1; }
-.remove-btn { width: 32px; height: 38px; border: 1px solid transparent; border-radius: 6px; background: none; color: var(--color-error); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.remove-btn:hover { background: #fef2f2; }
-.auth-user-row { display: flex; gap: 8px; align-items: flex-start; }
-.auth-user-row > * { flex: 1; }
-.header-row { display: flex; gap: 8px; align-items: flex-start; }
-.header-row > * { flex: 1; }
-.sub-section { display: flex; flex-direction: column; gap: 8px; padding: 12px 0; }
-.sub-section + .sub-section { border-top: 1px solid var(--color-border); }
-.hint { font-size: 12px; color: #64748b; margin: 0; }
-.form-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border); }
-.route-card { border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; }
-.route-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--color-background); border-bottom: 1px solid var(--color-border); }
-.route-index { font-size: 13px; font-weight: 600; color: var(--color-text); }
-.route-body { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-.sub-section-header { display: flex; justify-content: space-between; align-items: center; }
-.sub-label { font-size: 13px; color: #64748b; }
+.site-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 2px solid var(--color-border);
+  margin: -24px -24px 20px;
+  padding: 0 24px;
+  flex-shrink: 0;
+}
+
+.tab {
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #64748b;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+
+.tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.form-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.field-hint {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.required-hint {
+  font-size: 13px;
+  color: var(--color-error);
+  margin: 0;
+  padding: 8px 12px;
+  background: #fef2f2;
+  border-radius: 6px;
+  border: 1px solid #fecaca;
+}
+
+.select {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--color-surface);
+  width: 100%;
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.array-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.array-item > * {
+  flex: 1;
+}
+
+.remove-btn {
+  width: 32px;
+  height: 38px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--color-error);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.remove-btn:hover {
+  background: #fef2f2;
+}
+
+.auth-user-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.auth-user-row > * {
+  flex: 1;
+}
+
+.header-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.header-row > * {
+  flex: 1;
+}
+
+.sub-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.sub-section + .sub-section {
+  border-top: 1px solid var(--color-border);
+}
+
+.hint {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+.form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.route-card {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.route-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.route-index {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.route-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sub-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sub-label {
+  font-size: 13px;
+  color: #64748b;
+}
 </style>

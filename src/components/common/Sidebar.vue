@@ -5,10 +5,10 @@ const route = useRoute()
 
 const menuItems = [
   { icon: 'home', label: '仪表盘', path: '/' },
-  { icon: 'config', label: '配置管理', path: '/config' },
+  { icon: 'proxy', label: '反向代理', path: '/proxy' },
+  { icon: 'config', label: '配置管理', path: '/conf' },
   { icon: 'server', label: '服务器', path: '/servers' },
-  { icon: 'cert', label: '证书', path: '/certificates' },
-  { icon: 'proxy', label: '反向代理', path: '/proxy' }
+  { icon: 'cert', label: '证书', path: '/certificates' }
 ]
 </script>
 

@@ -29,25 +29,6 @@ onMounted(() => {
         <Btn size="sm" @click="store.fetchConfig(pathInput.value)">刷新</Btn>
       </template>
 
-      <div class="path-navigator">
-        <div class="breadcrumb">
-          <span
-            v-for="(segment, idx) in pathSegments"
-            :key="idx"
-            class="breadcrumb-item"
-          >
-            <span class="sep">/</span>
-            <a href="#" @click.prevent="navigateTo('/' + pathSegments.slice(1, idx + 1).join('/'))">
-              {{ segment || '根' }}
-            </a>
-          </span>
-        </div>
-        <div class="path-input-group">
-          <input v-model="pathInput" type="text" class="path-input" placeholder="路径, 如 /apps/http/servers" />
-          <Btn size="sm" @click="navigateTo(pathInput)">跳转</Btn>
-        </div>
-      </div>
-
       <div v-if="store.loading" class="state-msg">加载中...</div>
       <div v-else-if="store.config !== null" class="json-display">
         <pre>{{ JSON.stringify(store.config, null, 2) }}</pre>

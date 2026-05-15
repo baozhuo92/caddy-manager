@@ -4,6 +4,7 @@ import { useSitesStore } from '../stores/sites'
 import { caddyApi } from '../services/caddyApi'
 import Card from '../components/common/Card.vue'
 import Btn from '../components/common/Btn.vue'
+import Drawer from '../components/common/Drawer.vue'
 import Badge from '../components/common/Badge.vue'
 import Message from '../components/common/Message.vue'
 import Table from '../components/common/Table.vue'
@@ -11,7 +12,7 @@ import SiteForm from '../components/proxy/SiteForm.vue'
 
 const sitesStore = useSitesStore()
 const messages = ref([])
-const showForm = ref(false)
+const showDrawer = ref(false)
 const editingSite = ref(null)
 const upstreams = ref([])
 const upstreamsLoading = ref(false)
@@ -35,12 +36,12 @@ const fetchUpstreams = async () => {
 
 const handleAdd = () => {
   editingSite.value = null
-  showForm.value = true
+  showDrawer.value = true
 }
 
 const handleEdit = (site) => {
   editingSite.value = site
-  showForm.value = true
+  showDrawer.value = true
 }
 
 const handleDelete = async (site) => {
@@ -63,7 +64,7 @@ const handleSave = async (data) => {
   }
   if (ok) {
     showMessage('success', editingSite.value ? '站点已更新' : '站点已创建')
-    showForm.value = false
+    showDrawer.value = false
     editingSite.value = null
   } else {
     showMessage('error', sitesStore.error || '保存失败')
@@ -71,7 +72,7 @@ const handleSave = async (data) => {
 }
 
 const handleCancel = () => {
-  showForm.value = false
+  showDrawer.value = false
   editingSite.value = null
 }
 
@@ -87,12 +88,18 @@ onMounted(async () => {
       <Message :type="msg.type" :message="msg.message" @close="messages.splice(idx, 1)" />
     </div>
 
-    <SiteForm
-      v-if="showForm"
-      :site="editingSite"
-      @save="handleSave"
-      @cancel="handleCancel"
-    />
+    <Drawer
+      :visible="showDrawer"
+      :title="editingSite ? '编辑站点' : '新建站点'"
+      width="580px"
+      @close="handleCancel"
+    >
+      <SiteForm
+        :site="editingSite"
+        @save="handleSave"
+        @cancel="handleCancel"
+      />
+    </Drawer>
 
     <Card title="反向代理站点">
       <template #actions>
@@ -117,13 +124,13 @@ onMounted(async () => {
             </div>
             <div class="site-actions">
               <button class="icon-btn" title="编辑" @click="handleEdit(site)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                 </svg>
               </button>
               <button class="icon-btn danger" title="删除" @click="handleDelete(site)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                   <polyline points="3 6 5 6 21 6"/>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                 </svg>
@@ -258,11 +265,6 @@ onMounted(async () => {
   cursor: pointer;
   color: #64748b;
   transition: all 0.2s;
-}
-
-.icon-btn svg {
-  width: 16px;
-  height: 16px;
 }
 
 .icon-btn:hover {

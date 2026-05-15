@@ -12,7 +12,7 @@ const routes = [
     component: Dashboard
   },
   {
-    path: '/config',
+    path: '/conf',
     name: 'Config',
     component: Config
   },

@@ -86,41 +86,6 @@ const handleAdapt = async () => {
       </div>
     </Card>
 
-    <Card title="加载配置">
-      <template #actions>
-        <Btn size="sm" variant="ghost" @click="showEditor = !showEditor">
-          {{ showEditor ? '隐藏编辑器' : '显示编辑器' }}
-        </Btn>
-      </template>
-
-      <div class="config-section">
-        <div class="config-type-selector">
-          <label class="radio-label">
-            <input type="radio" value="json" checked /> JSON配置
-          </label>
-          <label class="radio-label">
-            <input type="radio" value="caddyfile" /> Caddyfile
-          </label>
-        </div>
-
-        <div v-if="showEditor" class="editor-section">
-          <textarea
-            v-model="configInput"
-            class="config-textarea"
-            placeholder="输入JSON配置或Caddyfile内容..."
-          ></textarea>
-          <div class="editor-actions">
-            <Btn variant="primary" @click="handleLoadConfig">加载配置</Btn>
-            <Btn variant="cta" @click="handleAdapt">适配为JSON</Btn>
-          </div>
-        </div>
-
-        <div v-if="adaptResult" class="adapt-result">
-          <h4>适配结果：</h4>
-          <JsonEditor :model-value="adaptResult" :readonly="true" :height="'300px'" />
-        </div>
-      </div>
-    </Card>
   </div>
 </template>
 

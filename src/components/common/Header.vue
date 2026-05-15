@@ -33,6 +33,7 @@ const checkConnection = async () => {
 }
 
 onMounted(() => {
+  serverUrl.value = window.location.origin + '/api/'
   checkConnection()
   setInterval(checkConnection, 10000)
 })

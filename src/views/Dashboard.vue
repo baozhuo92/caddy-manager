@@ -13,7 +13,7 @@ const isConnected = ref(false)
 const loading = ref(true)
 
 const quickActions = [
-  { label: '配置管理', path: '/config', icon: 'config', desc: '查看和编辑配置' },
+  { label: '配置管理', path: '/conf', icon: 'config', desc: '查看和编辑配置' },
   { label: '服务器控制', path: '/servers', icon: 'server', desc: '启动/停止服务' },
   { label: '证书管理', path: '/certificates', icon: 'cert', desc: '查看CA和证书' },
   { label: '反向代理', path: '/proxy', icon: 'proxy', desc: '监控上游状态' }
