@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.title}} - Caddy Server Manager</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="error-state" style="min-height:100vh;">
+    <div class="auth-card" style="text-align:center;">
+        <h1 style="font-size:48px;font-weight:200;color:var(--color-text-muted);margin-bottom:16px;">{{.code}}</h1>
+        <p style="font-size:16px;color:var(--color-text-secondary);margin-bottom:24px;">{{.message}}</p>
+        <a href="/" class="btn btn-primary">返回首页</a>
+    </div>
+</div>
+</body>
+</html>

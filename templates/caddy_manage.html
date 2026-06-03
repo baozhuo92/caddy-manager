@@ -1,0 +1,103 @@
+{{template "_layout_start.html" .}}
+<div class="section-card">
+    <h3>Caddy 服务控制</h3>
+    <div class="caddy-status-line">
+        <span class="stat-indicator" id="caddyIndicator" style="background:var(--color-text-muted)"></span>
+        <span id="caddyStatusText">检测中...</span>
+    </div>
+    <div class="action-buttons" style="margin-bottom:16px;">
+        <button class="btn btn-primary" onclick="caddyAction('start')" id="btnStart">启动 Caddy</button>
+        <button class="btn btn-danger" onclick="caddyAction('stop')" id="btnStop">停止 Caddy</button>
+        <button class="btn btn-secondary" onclick="caddyAction('reload')" id="btnReload">刷新配置</button>
+    </div>
+    <div id="lastOpResult" style="font-size:12px;color:var(--color-text-muted);"></div>
+</div>
+
+<div class="section-card">
+    <h3>配置文件位置</h3>
+    <div id="configEditor">
+        <div class="config-editor-row">
+            <label>主 Caddyfile 路径</label>
+            <input type="text" id="cfgCaddyfilePath" placeholder="/app/caddy_config/Caddyfile">
+        </div>
+        <div class="config-editor-row">
+            <label>子配置文件目录</label>
+            <input type="text" id="cfgSitesDir" placeholder="/app/caddy_config/sites">
+        </div>
+        <div class="config-editor-row">
+            <label>管理工具域名</label>
+            <input type="text" id="cfgServerDomain" placeholder="manage.example.com">
+        </div>
+        <div style="text-align:right;margin-top:12px;">
+            <button class="btn btn-primary" onclick="saveConfig()">保存配置</button>
+        </div>
+    </div>
+</div>
+
+<script>
+var caddyStatus = '';
+
+function loadStatus() {
+    fetch('/api/stats', { headers: { 'Token': localStorage.getItem('auth_token') } })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.code !== 0) return;
+        var data = d.data;
+        caddyStatus = data.caddy_status;
+        var indicator = document.getElementById('caddyIndicator');
+        var statusText = document.getElementById('caddyStatusText');
+        if (data.caddy_status === 'running') {
+            indicator.style.background = 'var(--color-success)'; statusText.textContent = '运行中';
+        } else {
+            indicator.style.background = 'var(--color-danger)'; statusText.textContent = '已停止';
+        }
+        document.getElementById('cfgCaddyfilePath').value = data.config.caddyfile_path || '';
+        document.getElementById('cfgSitesDir').value = data.config.caddyfile_sites_dir || '';
+        document.getElementById('cfgServerDomain').value = data.config.server_domain || '';
+        updateButtons();
+    });
+}
+
+function updateButtons() {
+    document.getElementById('btnStart').disabled = (caddyStatus === 'running');
+    document.getElementById('btnStop').disabled = (caddyStatus === 'stopped');
+    document.getElementById('btnReload').disabled = (caddyStatus === 'stopped');
+}
+
+function caddyAction(action) {
+    var labels = { start: '启动', stop: '停止', reload: '刷新配置' };
+    if (!confirm('确认要 ' + labels[action] + ' 吗？')) return;
+    showLoadingMask();
+    var resultEl = document.getElementById('lastOpResult');
+    fetch('/caddy/' + action, { method: 'POST', headers: { 'Token': localStorage.getItem('auth_token') } })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        hideLoadingMask();
+        showToast(d.message, d.code === 0 ? 'success' : 'error');
+        var now = new Date();
+        resultEl.textContent = d.message + ' (' + now.toLocaleString() + ')';
+        if (d.code === 0) setTimeout(loadStatus, 1500);
+    })
+    .catch(function() { hideLoadingMask(); showToast('网络错误', 'error'); });
+}
+
+function saveConfig() {
+    var body = {
+        caddyfile_path: document.getElementById('cfgCaddyfilePath').value,
+        caddyfile_sites_dir: document.getElementById('cfgSitesDir').value,
+        server_domain: document.getElementById('cfgServerDomain').value
+    };
+    showLoadingMask();
+    fetch('/caddy/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Token': localStorage.getItem('auth_token') },
+        body: JSON.stringify(body)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { hideLoadingMask(); showToast(d.message, d.code === 0 ? 'success' : 'error'); })
+    .catch(function() { hideLoadingMask(); showToast('网络错误', 'error'); });
+}
+
+loadStatus();
+</script>
+{{template "_layout_end.html" .}}

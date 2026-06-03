@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caddy Server Manager</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <h1>Caddy Server</h1>
+            <span>MANAGER</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/" class="{{if eq .Active "dashboard"}}active{{end}}">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="3" width="6" height="6" rx="1"/>
+                        <rect x="11" y="3" width="6" height="6" rx="1"/>
+                        <rect x="3" y="11" width="6" height="6" rx="1"/>
+                        <rect x="11" y="11" width="6" height="6" rx="1"/>
+                    </svg>
+                </span>
+                <span>控制台</span>
+            </a>
+            <a href="/sites" class="{{if eq .Active "sites"}}active{{end}}">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="2" y="2" width="16" height="6" rx="1"/>
+                        <rect x="2" y="10" width="16" height="6" rx="1"/>
+                        <line x1="6" y1="5" x2="6" y2="5" stroke-width="2"/>
+                        <line x1="6" y1="13" x2="6" y2="13" stroke-width="2"/>
+                    </svg>
+                </span>
+                <span>网站管理</span>
+            </a>
+            <a href="/sites/new" class="{{if eq .Active "site_new"}}active{{end}}">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="10" cy="10" r="7"/>
+                        <line x1="10" y1="6" x2="10" y2="14"/>
+                        <line x1="6" y1="10" x2="14" y2="10"/>
+                    </svg>
+                </span>
+                <span>新增网站</span>
+            </a>
+            <a href="/caddy/manage" class="{{if eq .Active "caddy_manage"}}active{{end}}">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="10" cy="10" r="3"/>
+                        <path d="M10 2v3M10 15v3M2 10h3M15 10h3M4.9 4.9l2.1 2.1M13 13l2.1 2.1M4.9 15.1l2.1-2.1M13 7l2.1-2.1"/>
+                    </svg>
+                </span>
+                <span>Caddy 管理</span>
+            </a>
+            <a href="/logs" class="{{if eq .Active "logs"}}active{{end}}">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="2" width="14" height="16" rx="2"/>
+                        <line x1="7" y1="6" x2="13" y2="6"/>
+                        <line x1="7" y1="9" x2="13" y2="9"/>
+                        <line x1="7" y1="12" x2="11" y2="12"/>
+                    </svg>
+                </span>
+                <span>系统日志</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <header class="header">
+            <span class="header-title">{{.HeaderTitle}}</span>
+            <div class="header-user">
+                <span>{{.Username}}</span>
+                <a href="/logout">退出登录</a>
+            </div>
+        </header>
+        <div class="content">

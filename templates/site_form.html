@@ -1,0 +1,201 @@
+{{template "_layout_start.html" .}}
+{{$isEdit := .IsEdit}}
+{{$site := .Site}}
+
+<div class="card card-padded">
+    <form id="siteForm">
+        <div class="form-section">
+            <div class="form-section-title">基本信息</div>
+
+            <div class="form-group">
+                <label class="form-label">网站名称 <span class="required">*</span></label>
+                <input type="text" name="name" class="form-control" value="{{$site.Name}}" placeholder="用于管理标识" required maxlength="128">
+                <div class="form-hint">用于后台管理界面的标识名称</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">域名 <span class="required">*</span></label>
+                <input type="text" name="domain" class="form-control" value="{{$site.Domain}}" placeholder="example.com" required maxlength="255">
+                <div class="form-hint">例如：example.com</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">请求协议</label>
+                <div class="radio-group">
+                    <label class="radio-item">
+                        <input type="radio" name="scheme" value="https" {{if eq $site.Scheme "https"}}checked{{end}}>
+                        HTTPS（默认，自动申请证书）
+                    </label>
+                    <label class="radio-item">
+                        <input type="radio" name="scheme" value="http" {{if eq $site.Scheme "http"}}checked{{end}}>
+                        HTTP
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">代理目标地址 <span class="required">*</span></label>
+                <input type="text" name="proxy_to" class="form-control" value="{{$site.ProxyTo}}" placeholder="http://10.0.0.1:8080" required maxlength="512">
+                <div class="form-hint">完整的 URL 地址，例如 http://10.0.0.1:8080</div>
+            </div>
+
+            <div class="form-group">
+                <label class="checkbox-item">
+                    <input type="checkbox" name="compression" value="1" {{if eq $site.Compression 1}}checked{{end}}>
+                    启用压缩（gzip）
+                </label>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="form-section-title">请求头配置</div>
+            <div id="headersList" class="dynamic-list">
+                <div class="dynamic-list-header" style="grid-template-columns: 1fr 1fr 60px;">
+                    <span>Header 名称</span>
+                    <span>Header 值</span>
+                    <span></span>
+                </div>
+                <div id="headersRows"></div>
+                <div class="dynamic-list-add">
+                    <a href="javascript:void(0)" onclick="addHeader()">+ 添加请求头</a>
+                </div>
+            </div>
+            <div class="form-hint" style="margin-top:8px;">支持 Caddy 内置变量，如 {remote_host}、{scheme} 等</div>
+        </div>
+
+        <div class="form-section">
+            <div class="form-section-title">分地址代理</div>
+            <div id="routesList" class="dynamic-list">
+                <div class="dynamic-list-header" style="grid-template-columns: 1fr 1fr 60px;">
+                    <span>匹配路径</span>
+                    <span>代理目标</span>
+                    <span></span>
+                </div>
+                <div id="routesRows"></div>
+                <div class="dynamic-list-add">
+                    <a href="javascript:void(0)" onclick="addRoute()">+ 添加路径代理</a>
+                </div>
+            </div>
+            <div class="form-hint" style="margin-top:8px;">路径以 / 开头，例如 /api</div>
+        </div>
+
+        <div class="form-section">
+            <div class="form-section-title">高级配置</div>
+            <div class="form-group">
+                <label class="form-label">自定义 Caddyfile 片段</label>
+                <textarea name="extra_config" class="form-control" rows="4" placeholder="response_header X-Frame-Options &quot;DENY&quot;">{{$site.ExtraConfig}}</textarea>
+                <div class="form-hint">高级用户可直接填写 Caddyfile 指令，此内容将原样插入站点配置块中</div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a href="/sites" class="btn btn-secondary">取消</a>
+            <button type="submit" class="btn btn-primary" id="submitBtn">{{if $isEdit}}保存修改{{else}}保存{{end}}</button>
+        </div>
+    </form>
+</div>
+
+<script>
+var isEdit = {{$isEdit}};
+
+var headersData = [];
+try {
+    var parsed = JSON.parse({{$site.RequestHeaders}} || '[]');
+    if (Array.isArray(parsed)) headersData = parsed;
+} catch(e) {}
+
+var routesData = [];
+try {
+    var parsed = JSON.parse({{$site.PathRoutes}} || '[]');
+    if (Array.isArray(parsed)) routesData = parsed;
+} catch(e) {}
+
+if (headersData.length === 0 && !isEdit) {
+    headersData.push({ name: 'X-Real-IP', value: '{remote_host}' });
+    headersData.push({ name: 'X-Forwarded-For', value: '{remote_host}' });
+}
+
+function renderHeaders() {
+    var rows = document.getElementById('headersRows');
+    var html = '';
+    for (var i = 0; i < headersData.length; i++) {
+        html += '<div class="dynamic-list-row" style="grid-template-columns: 1fr 1fr 60px;">';
+        html += '<input type="text" value="' + escapeAttr(headersData[i].name || '') + '" onchange="headersData[' + i + '].name=this.value" placeholder="Header 名称">';
+        html += '<input type="text" value="' + escapeAttr(headersData[i].value || '') + '" onchange="headersData[' + i + '].value=this.value" placeholder="Header 值">';
+        html += '<button type="button" class="btn-link btn-link-danger" onclick="headersData.splice(' + i + ',1);renderHeaders();">删除</button>';
+        html += '</div>';
+    }
+    rows.innerHTML = html;
+}
+
+function addHeader() { headersData.push({ name: '', value: '' }); renderHeaders(); }
+
+function renderRoutes() {
+    var rows = document.getElementById('routesRows');
+    var html = '';
+    for (var i = 0; i < routesData.length; i++) {
+        html += '<div class="dynamic-list-row" style="grid-template-columns: 1fr 1fr 60px;">';
+        html += '<input type="text" value="' + escapeAttr(routesData[i].path || '') + '" onchange="routesData[' + i + '].path=this.value" placeholder="/api">';
+        html += '<input type="text" value="' + escapeAttr(routesData[i].to || '') + '" onchange="routesData[' + i + '].to=this.value" placeholder="http://backend:3000">';
+        html += '<button type="button" class="btn-link btn-link-danger" onclick="routesData.splice(' + i + ',1);renderRoutes();">删除</button>';
+        html += '</div>';
+    }
+    rows.innerHTML = html;
+}
+
+function addRoute() { routesData.push({ path: '', to: '' }); renderRoutes(); }
+
+function escapeAttr(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+renderHeaders();
+renderRoutes();
+
+document.getElementById('siteForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var name = this.name.value.trim();
+    var domain = this.domain.value.trim();
+    var proxyTo = this.proxy_to.value.trim();
+    if (!name || !domain || !proxyTo) { showToast('请填写必填字段', 'error'); return; }
+
+    var scheme = this.querySelector('input[name="scheme"]:checked').value;
+    var compression = this.compression.checked;
+    var extraConfig = this.extra_config.value;
+
+    var filteredHeaders = [];
+    for (var i = 0; i < headersData.length; i++) { if (headersData[i].name) filteredHeaders.push(headersData[i]); }
+    var filteredRoutes = [];
+    for (var i = 0; i < routesData.length; i++) { if (routesData[i].path && routesData[i].to) filteredRoutes.push(routesData[i]); }
+
+    var body = {
+        name: name, domain: domain, scheme: scheme, proxy_to: proxyTo,
+        compression: compression,
+        request_headers: JSON.stringify(filteredHeaders),
+        path_routes: JSON.stringify(filteredRoutes),
+        extra_config: extraConfig
+    };
+
+    var url = isEdit ? '/api/sites/{{$site.ID}}' : '/api/sites';
+    var method = isEdit ? 'PUT' : 'POST';
+
+    showLoadingMask();
+    var btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = '保存中...';
+
+    fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json', 'Token': localStorage.getItem('auth_token') },
+        body: JSON.stringify(body)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        hideLoadingMask();
+        if (d.code === 0) { showToast(d.message, 'success'); setTimeout(function() { window.location.href = '/sites'; }, 800); }
+        else { showToast(d.message, 'error'); btn.disabled = false; btn.textContent = isEdit ? '保存修改' : '保存'; }
+    })
+    .catch(function() { hideLoadingMask(); showToast('网络错误', 'error'); btn.disabled = false; btn.textContent = isEdit ? '保存修改' : '保存'; });
+});
+</script>
+{{template "_layout_end.html" .}}
