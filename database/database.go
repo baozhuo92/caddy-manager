@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 var DB *sql.DB
 
 func Init(dbPath string) error {
 	var err error
-	DB, err = sql.Open("sqlite3", dbPath+"?_journal_mode=WAL&_foreign_keys=off")
+	dsn := fmt.Sprintf("file:%s?_journal_mode=WAL&_foreign_keys=off", dbPath)
+	DB, err = sql.Open("sqlite", dsn)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
