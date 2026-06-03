@@ -1,0 +1,17 @@
+services:
+  caddy-manager:
+    build: .
+    container_name: caddy-manager
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/app/config/config.yaml
+      - ./caddy_config:/app/caddy_config
+      - ./data:/app/data
+      - caddy_data:/root/.local/share/caddy
+    restart: unless-stopped
+
+volumes:
+  caddy_data:

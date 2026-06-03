@@ -1,0 +1,260 @@
+{{template "_layout_start.html" .}}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Caddy 状态</div>
+        <div class="stat-value" id="statCaddyStatus">--</div>
+        <div class="stat-sub" id="statCaddyLabel">加载中...</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">网站总数</div>
+        <div class="stat-value" id="statTotalSites">--</div>
+        <div class="stat-sub">个代理站点</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">启用 / 停用</div>
+        <div class="stat-value" id="statSiteBreakdown">--</div>
+        <div class="stat-sub">运行中 / 已停止</div>
+    </div>
+</div>
+
+<div class="section-card">
+    <h3>Caddy 快捷操作</h3>
+    <div class="caddy-status-line">
+        <span class="stat-indicator" id="caddyIndicator" style="background:var(--color-text-muted)"></span>
+        <span id="caddyStatusText">检测中...</span>
+    </div>
+    <div class="action-buttons">
+        <button class="btn btn-primary" onclick="caddyAction('start')" id="btnStart">启动 Caddy</button>
+        <button class="btn btn-danger" onclick="caddyAction('stop')" id="btnStop">停止 Caddy</button>
+        <button class="btn btn-secondary" onclick="caddyAction('reload')" id="btnReload">刷新配置</button>
+    </div>
+</div>
+
+<div class="section-card">
+    <h3>系统信息</h3>
+    <div class="section-row">
+        <span class="section-label">Caddy 状态</span>
+        <span class="section-value" id="sysBinary">--</span>
+    </div>
+    <div class="section-row" id="caddyVersionRow">
+        <span class="section-label">当前版本</span>
+        <span class="section-value" id="sysCaddyVersion">--</span>
+    </div>
+    <div class="section-row" id="caddyLatestRow" style="display:none">
+        <span class="section-label">最新版本</span>
+        <span class="section-value" id="sysCaddyLatest">--</span>
+    </div>
+    <div class="section-row" id="caddyActionRow" style="display:none">
+        <span class="section-label"></span>
+        <span class="section-value">
+            <span id="caddyInstallBtn" style="display:none">
+                <button class="btn btn-primary btn-sm" onclick="installCaddy()">一键安装 Caddy</button>
+            </span>
+            <span id="caddyUpdateBtn" style="display:none">
+                <button class="btn btn-secondary btn-sm" onclick="updateCaddy()">更新 Caddy</button>
+            </span>
+            <span id="installProgress" style="display:none">
+                <span id="installProgressText" style="font-size:12px;color:var(--color-text-secondary)"></span>
+                <div style="margin-top:4px;background:var(--color-border);border-radius:4px;height:4px;width:200px;">
+                    <div id="installProgressBar" style="background:var(--color-primary);height:100%;border-radius:4px;width:0%;transition:width 300ms ease-out;"></div>
+                </div>
+            </span>
+        </span>
+    </div>
+    <div class="section-row">
+        <span class="section-label">管理域名</span>
+        <span class="section-value" id="sysDomain">--</span>
+    </div>
+    <div class="section-row">
+        <span class="section-label">主 Caddyfile</span>
+        <span class="section-value" id="sysCaddyfilePath">--</span>
+    </div>
+    <div class="section-row">
+        <span class="section-label">子配置目录</span>
+        <span class="section-value" id="sysSitesDir">--</span>
+    </div>
+    <div class="section-row">
+        <span class="section-label">数据库大小</span>
+        <span class="section-value" id="sysDbSize">--</span>
+    </div>
+    <div class="section-row">
+        <span class="section-label">运行时间</span>
+        <span class="section-value" id="sysUptime">--</span>
+    </div>
+</div>
+
+<script>
+var caddyStatus = '';
+
+function loadStats() {
+    fetch('/api/stats', { headers: { 'Token': localStorage.getItem('auth_token') } })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.code !== 0) return;
+        var data = d.data;
+        caddyStatus = data.caddy_status;
+
+        var statusEl = document.getElementById('statCaddyStatus');
+        var labelEl = document.getElementById('statCaddyLabel');
+        var indicator = document.getElementById('caddyIndicator');
+        var statusText = document.getElementById('caddyStatusText');
+
+        if (data.caddy_status === 'running') {
+            statusEl.innerHTML = '<span class="stat-indicator running" style="width:12px;height:12px;display:inline-block"></span> 运行中';
+            indicator.style.background = 'var(--color-success)';
+            statusText.textContent = '运行中';
+            labelEl.textContent = '服务正常运行';
+        } else {
+            statusEl.innerHTML = '<span class="stat-indicator stopped" style="width:12px;height:12px;display:inline-block"></span> 已停止';
+            indicator.style.background = 'var(--color-danger)';
+            statusText.textContent = '已停止';
+            labelEl.textContent = '服务未运行';
+        }
+
+        document.getElementById('statTotalSites').textContent = data.total_sites;
+        document.getElementById('statSiteBreakdown').textContent = data.enabled_sites + ' / ' + data.disabled_sites;
+        document.getElementById('sysBinary').textContent = data.caddy_binary_exists ? '已安装' : '未安装';
+        document.getElementById('sysDomain').textContent = data.config.server_domain || '未配置';
+        document.getElementById('sysCaddyfilePath').textContent = data.config.caddyfile_path;
+        document.getElementById('sysSitesDir').textContent = data.config.caddyfile_sites_dir;
+        document.getElementById('sysDbSize').textContent = data.db_size;
+        document.getElementById('sysUptime').textContent = data.uptime;
+
+        updateButtons();
+    });
+}
+
+function loadVersion() {
+    fetch('/api/caddy/version', { headers: { 'Token': localStorage.getItem('auth_token') } })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.code !== 0) return;
+        var v = d.data;
+
+        var actionRow = document.getElementById('caddyActionRow');
+        var installBtn = document.getElementById('caddyInstallBtn');
+        var updateBtn = document.getElementById('caddyUpdateBtn');
+        var progress = document.getElementById('installProgress');
+        var versionRow = document.getElementById('caddyVersionRow');
+        var latestRow = document.getElementById('caddyLatestRow');
+
+        if (v.not_installed) {
+            document.getElementById('sysCaddyVersion').textContent = '未安装';
+            installBtn.style.display = 'inline';
+            updateBtn.style.display = 'none';
+            latestRow.style.display = 'none';
+            actionRow.style.display = '';
+        } else {
+            document.getElementById('sysCaddyVersion').textContent = v.installed || '--';
+            installBtn.style.display = 'none';
+            progress.style.display = 'none';
+
+            if (v.has_update) {
+                document.getElementById('sysCaddyLatest').textContent = v.latest;
+                latestRow.style.display = '';
+                updateBtn.style.display = 'inline';
+                actionRow.style.display = '';
+            } else {
+                latestRow.style.display = 'none';
+                updateBtn.style.display = 'none';
+                actionRow.style.display = v.installed ? '' : 'none';
+            }
+        }
+    });
+}
+
+function installCaddy() {
+    if (!confirm('确认要下载并安装 Caddy 吗？')) return;
+
+    var installBtn = document.getElementById('caddyInstallBtn');
+    var updateBtn = document.getElementById('caddyUpdateBtn');
+    var progress = document.getElementById('installProgress');
+    var actionRow = document.getElementById('caddyActionRow');
+
+    installBtn.style.display = 'none';
+    updateBtn.style.display = 'none';
+    progress.style.display = 'inline';
+    actionRow.style.display = '';
+
+    fetch('/api/caddy/install', { method: 'POST', headers: { 'Token': localStorage.getItem('auth_token') } })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.code === 0) {
+            pollInstallProgress();
+        } else {
+            showToast(d.message, 'error');
+            progress.style.display = 'none';
+            installBtn.style.display = 'inline';
+        }
+    });
+}
+
+function updateCaddy() {
+    installCaddy();
+}
+
+var progressTimer = null;
+
+function pollInstallProgress() {
+    fetch('/api/caddy/install/progress', { headers: { 'Token': localStorage.getItem('auth_token') } })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.code !== 0) return;
+        var s = d.data;
+        document.getElementById('installProgressText').textContent = s.message;
+        document.getElementById('installProgressBar').style.width = s.progress + '%';
+
+        if (s.status === 'done') {
+            document.getElementById('installProgress').style.display = 'none';
+            document.getElementById('caddyActionRow').style.display = 'none';
+            showToast(s.message, 'success');
+            if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+            setTimeout(function() {
+                loadStats();
+                loadVersion();
+            }, 1500);
+        } else if (s.status === 'error') {
+            showToast(s.message, 'error');
+            document.getElementById('installProgress').style.display = 'none';
+            document.getElementById('caddyInstallBtn').style.display = 'inline';
+            if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+        }
+    });
+}
+
+function updateButtons() {
+    document.getElementById('btnStart').disabled = (caddyStatus === 'running');
+    document.getElementById('btnStop').disabled = (caddyStatus === 'stopped');
+    document.getElementById('btnReload').disabled = (caddyStatus === 'stopped');
+}
+
+function caddyAction(action) {
+    if (!confirm('确认要 ' + (action === 'start' ? '启动' : action === 'stop' ? '停止' : '刷新') + ' Caddy 服务吗？')) return;
+
+    showLoadingMask();
+    fetch('/caddy/' + action, {
+        method: 'POST',
+        headers: { 'Token': localStorage.getItem('auth_token') }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        hideLoadingMask();
+        showToast(d.message, d.code === 0 ? 'success' : 'error');
+        if (d.code === 0) { setTimeout(loadStats, 1000); }
+    })
+    .catch(function() {
+        hideLoadingMask();
+        showToast('网络错误', 'error');
+    });
+}
+
+loadStats();
+loadVersion();
+progressTimer = setInterval(function() {
+    var state = document.getElementById('installProgress');
+    if (state && state.style.display !== 'none') {
+        pollInstallProgress();
+    }
+}, 1000);
+</script>
+{{template "_layout_end.html" .}}

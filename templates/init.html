@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>初始化管理员 - Caddy Server Manager</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-brand">
+            <h1>Caddy Server</h1>
+            <span>MANAGER</span>
+        </div>
+        <h2 class="auth-title">初始化管理员</h2>
+        <p class="auth-subtitle">首次使用，请设置管理员账号密码</p>
+
+        <form id="initForm">
+            <div class="form-group">
+                <label class="form-label">用户名 <span class="required">*</span></label>
+                <input type="text" name="username" class="form-control" placeholder="4-64个字符" required minlength="4" maxlength="64" autofocus>
+                <div class="form-error" id="usernameError"></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">密码 <span class="required">*</span></label>
+                <input type="password" name="password" class="form-control" placeholder="6-128个字符" required minlength="6" maxlength="128">
+                <div class="form-error" id="passwordError"></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">确认密码 <span class="required">*</span></label>
+                <input type="password" name="confirm_password" class="form-control" placeholder="再次输入密码" required>
+                <div class="form-error" id="confirmError"></div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg btn-block" id="submitBtn">创建管理员</button>
+        </form>
+
+        <div class="auth-footer" style="margin-top: 20px;">
+            <a href="/login">已有账号？去登录</a>
+        </div>
+    </div>
+</div>
+
+<script>
+const form = document.getElementById('initForm');
+const submitBtn = document.getElementById('submitBtn');
+const usernameErr = document.getElementById('usernameError');
+const passwordErr = document.getElementById('passwordError');
+const confirmErr = document.getElementById('confirmError');
+
+function showToast(msg, type) {
+    const container = document.createElement('div');
+    container.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:500;';
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-' + (type || 'error');
+    toast.textContent = msg;
+    container.appendChild(toast);
+    document.body.appendChild(container);
+    setTimeout(function() { container.remove(); }, 3000);
+}
+
+form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    usernameErr.textContent = '';
+    passwordErr.textContent = '';
+    confirmErr.textContent = '';
+
+    const username = form.username.value.trim();
+    const password = form.password.value;
+    const confirm = form.confirm_password.value;
+
+    let valid = true;
+    if (username.length < 4 || username.length > 64) {
+        usernameErr.textContent = '用户名长度需为4-64个字符';
+        valid = false;
+    }
+    if (password.length < 6 || password.length > 128) {
+        passwordErr.textContent = '密码长度需为6-128个字符';
+        valid = false;
+    }
+    if (password !== confirm) {
+        confirmErr.textContent = '两次输入的密码不一致';
+        valid = false;
+    }
+    if (!valid) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = '创建中...';
+
+    fetch('/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username, password: password, confirm_password: confirm })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.code === 0) {
+            showToast(data.message, 'success');
+            setTimeout(function() { window.location.href = '/login'; }, 1000);
+        } else {
+            showToast(data.message, 'error');
+            submitBtn.disabled = false;
+            submitBtn.textContent = '创建管理员';
+        }
+    })
+    .catch(function() {
+        showToast('网络错误，请重试', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '创建管理员';
+    });
+});
+</script>
+</body>
+</html>

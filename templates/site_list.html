@@ -1,0 +1,152 @@
+{{template "_layout_start.html" .}}
+<div class="toolbar">
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="搜索域名..." onkeydown="if(event.key==='Enter')loadSites(1)">
+        <button class="btn btn-primary btn-sm" onclick="loadSites(1)">搜索</button>
+    </div>
+    <a href="/sites/new" class="btn btn-primary">新增网站</a>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th style="width:25%">域名</th>
+                <th style="width:30%">代理地址</th>
+                <th style="width:10%">协议</th>
+                <th style="width:10%">状态</th>
+                <th style="width:25%">操作</th>
+            </tr>
+        </thead>
+        <tbody id="siteTableBody">
+            <tr><td colspan="5"><div class="skeleton skeleton-row"></div></td></tr>
+            <tr><td colspan="5"><div class="skeleton skeleton-row"></div></td></tr>
+            <tr><td colspan="5"><div class="skeleton skeleton-row"></div></td></tr>
+            <tr><td colspan="5"><div class="skeleton skeleton-row"></div></td></tr>
+            <tr><td colspan="5"><div class="skeleton skeleton-row"></div></td></tr>
+        </tbody>
+    </table>
+    <div class="pagination" id="pagination"></div>
+</div>
+
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal">
+        <h3 id="confirmTitle">确认操作</h3>
+        <p id="confirmMsg"></p>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeConfirm()">取消</button>
+            <button class="btn btn-danger" id="confirmBtn" onclick="execConfirm()">确定</button>
+        </div>
+    </div>
+</div>
+
+<script>
+var currentPage = 1;
+var confirmCallback = null;
+
+function loadSites(page) {
+    currentPage = page || 1;
+    var search = document.getElementById('searchInput').value;
+
+    var params = '?page=' + currentPage + '&page_size=10';
+    if (search) { params += '&search=' + encodeURIComponent(search); }
+
+    fetch('/api/sites' + params, { headers: { 'Token': localStorage.getItem('auth_token') } })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.code !== 0) { showToast(d.message, 'error'); return; }
+        var data = d.data;
+        var tbody = document.getElementById('siteTableBody');
+        if (!data.list || data.list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="8" y="8" width="48" height="36" rx="4"/><line x1="8" y1="18" x2="56" y2="18"/></svg></div><h3>暂无代理网站</h3><p>点击右上角新增网站按钮添加第一个代理站点</p></div></td></tr>';
+        } else {
+            var html = '';
+            for (var i = 0; i < data.list.length; i++) {
+                var s = data.list[i];
+                html += '<tr>';
+                html += '<td><strong>' + escapeHTML(s.name) + '</strong><br><span style="font-size:12px;color:var(--color-text-muted);font-family:var(--font-mono)">' + escapeHTML(s.domain) + '</span></td>';
+                html += '<td style="font-family:var(--font-mono);font-size:13px">' + escapeHTML(s.proxy_to) + '</td>';
+                html += '<td><span style="font-size:12px;color:var(--color-text-secondary)">' + (s.scheme ? s.scheme.toUpperCase() : 'HTTPS') + '</span></td>';
+                html += '<td><span class="badge ' + (s.status === 'enabled' ? 'badge-enabled' : 'badge-disabled') + '">' + (s.status === 'enabled' ? '启用' : '停用') + '</span></td>';
+                html += '<td>';
+                html += '<a href="/sites/' + s.id + '/edit" class="btn btn-text btn-sm">编辑</a> ';
+                html += '<button class="btn-link btn-sm" onclick="toggleSite(' + s.id + ')">' + (s.status === 'enabled' ? '停用' : '启用') + '</button> ';
+                html += '<button class="btn-link btn-link-danger btn-sm" onclick="deleteSite(' + s.id + ', \'' + escapeHTML(s.name) + '\')">删除</button>';
+                html += '</td>';
+                html += '</tr>';
+            }
+            tbody.innerHTML = html;
+        }
+
+        var pag = document.getElementById('pagination');
+        var totalPages = Math.ceil(data.total / data.page_size);
+        var phtml = '<span>共 ' + data.total + ' 个网站</span>';
+        phtml += '<div class="pagination-pages">';
+        if (currentPage > 1) phtml += '<a href="javascript:void(0)" onclick="loadSites(' + (currentPage - 1) + ')">上一页</a>';
+        for (var p = 1; p <= totalPages; p++) {
+            if (p === currentPage) {
+                phtml += '<span class="active">' + p + '</span>';
+            } else if (p <= 3 || p > totalPages - 3 || (p >= currentPage - 1 && p <= currentPage + 1)) {
+                phtml += '<a href="javascript:void(0)" onclick="loadSites(' + p + ')">' + p + '</a>';
+            } else if (p === 4 || p === totalPages - 3) {
+                phtml += '<span>...</span>';
+            }
+        }
+        if (currentPage < totalPages) phtml += '<a href="javascript:void(0)" onclick="loadSites(' + (currentPage + 1) + ')">下一页</a>';
+        phtml += '</div>';
+        pag.innerHTML = phtml;
+    })
+    .catch(function() { showToast('网络错误', 'error'); });
+}
+
+function toggleSite(id) {
+    showLoadingMask();
+    fetch('/api/sites/' + id + '/toggle', {
+        method: 'PUT',
+        headers: { 'Token': localStorage.getItem('auth_token') }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        hideLoadingMask();
+        showToast(d.message, d.code === 0 ? 'success' : 'error');
+        if (d.code === 0) loadSites(currentPage);
+    });
+}
+
+function deleteSite(id, name) {
+    document.getElementById('confirmTitle').textContent = '删除网站';
+    document.getElementById('confirmMsg').textContent = '确定要删除 "' + name + '" 吗？此操作不可恢复。';
+    document.getElementById('confirmModal').classList.add('active');
+    confirmCallback = function() {
+        showLoadingMask();
+        fetch('/api/sites/' + id, {
+            method: 'DELETE',
+            headers: { 'Token': localStorage.getItem('auth_token') }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            hideLoadingMask();
+            showToast(d.message, d.code === 0 ? 'success' : 'error');
+            if (d.code === 0) loadSites(currentPage);
+        });
+    };
+}
+
+function closeConfirm() {
+    document.getElementById('confirmModal').classList.remove('active');
+    confirmCallback = null;
+}
+
+function execConfirm() {
+    document.getElementById('confirmModal').classList.remove('active');
+    if (confirmCallback) { confirmCallback(); confirmCallback = null; }
+}
+
+function escapeHTML(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+loadSites(1);
+</script>
+{{template "_layout_end.html" .}}

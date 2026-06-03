@@ -1,0 +1,11 @@
+server:
+  port: 8080
+
+database:
+  path: ./data/caddy.db
+
+caddy:
+  binary_path: /usr/sbin/caddy
+  caddyfile_path: /app/caddy_config/Caddyfile
+  caddyfile_sites_dir: /app/caddy_config/sites
+  server_domain: ""

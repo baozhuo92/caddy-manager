@@ -1,0 +1,96 @@
+{{template "_layout_start.html" .}}
+<div class="toolbar">
+    <div class="search-bar">
+        <select id="levelFilter" class="form-control" style="width:120px;" onchange="loadLogs(1)">
+            <option value="all">全部级别</option>
+            <option value="info">INFO</option>
+            <option value="warn">WARN</option>
+            <option value="error">ERROR</option>
+        </select>
+        <input type="text" id="logSearchInput" placeholder="搜索日志内容..." onkeydown="if(event.key==='Enter')loadLogs(1)">
+        <button class="btn btn-primary btn-sm" onclick="loadLogs(1)">搜索</button>
+    </div>
+    <button class="btn btn-danger btn-sm" onclick="clearLogs()">清空日志</button>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th style="width:16%">时间</th>
+                <th style="width:8%">级别</th>
+                <th style="width:10%">来源</th>
+                <th style="width:66%">内容</th>
+            </tr>
+        </thead>
+        <tbody id="logTableBody">
+            <tr><td colspan="4"><div class="skeleton skeleton-row"></div></td></tr>
+            <tr><td colspan="4"><div class="skeleton skeleton-row"></div></td></tr>
+            <tr><td colspan="4"><div class="skeleton skeleton-row"></div></td></tr>
+        </tbody>
+    </table>
+    <div class="pagination" id="logPagination"></div>
+</div>
+
+<script>
+var logPage = 1;
+
+function loadLogs(page) {
+    logPage = page || 1;
+    var level = document.getElementById('levelFilter').value;
+    var search = document.getElementById('logSearchInput').value;
+    var params = '?page=' + logPage + '&page_size=20';
+    if (level && level !== 'all') params += '&level=' + level;
+    if (search) params += '&search=' + encodeURIComponent(search);
+
+    fetch('/api/logs' + params, { headers: { 'Token': localStorage.getItem('auth_token') } })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.code !== 0) { showToast(d.message, 'error'); return; }
+        var data = d.data;
+        var tbody = document.getElementById('logTableBody');
+        if (!data.list || data.list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="8" y="8" width="48" height="36" rx="4"/><line x1="8" y1="18" x2="56" y2="18"/></svg></div><h3>暂无 Caddy 运行日志</h3><p>Caddy 服务可能未启动或还没有产生日志</p></div></td></tr>';
+        } else {
+            var html = '';
+            for (var i = 0; i < data.list.length; i++) {
+                var l = data.list[i];
+                var levelClass = 'log-level-' + (l.log_level === 'warn' ? 'warn' : l.log_level === 'error' ? 'error' : 'info');
+                var timeStr = new Date(l.created_time).toLocaleString();
+                html += '<tr><td style="font-size:12px;color:var(--color-text-muted)">' + timeStr + '</td>';
+                html += '<td><span class="log-level ' + levelClass + '">' + escapeHTML(l.log_level) + '</span></td>';
+                html += '<td style="font-size:12px;color:var(--color-text-secondary)">' + escapeHTML(l.log_source) + '</td>';
+                html += '<td><span class="log-message" title="' + escapeAttr(l.log_message) + '">' + escapeHTML(l.log_message) + '</span></td></tr>';
+            }
+            tbody.innerHTML = html;
+        }
+        var pag = document.getElementById('logPagination');
+        var totalPages = Math.ceil(data.total / data.page_size);
+        var phtml = '<span>共 ' + data.total + ' 条日志</span><div class="pagination-pages">';
+        if (logPage > 1) phtml += '<a href="javascript:void(0)" onclick="loadLogs(' + (logPage - 1) + ')">上一页</a>';
+        for (var p = 1; p <= totalPages; p++) {
+            if (p === logPage) { phtml += '<span class="active">' + p + '</span>'; }
+            else if (p <= 3 || p > totalPages - 3 || (p >= logPage - 1 && p <= logPage + 1)) { phtml += '<a href="javascript:void(0)" onclick="loadLogs(' + p + ')">' + p + '</a>'; }
+            else if (p === 4 || p === totalPages - 3) { phtml += '<span>...</span>'; }
+        }
+        if (logPage < totalPages) phtml += '<a href="javascript:void(0)" onclick="loadLogs(' + (logPage + 1) + ')">下一页</a>';
+        phtml += '</div>';
+        pag.innerHTML = phtml;
+    });
+}
+
+function clearLogs() {
+    if (!confirm('确定要清空所有日志吗？此操作不可恢复。')) return;
+    showLoadingMask();
+    fetch('/api/logs', { method: 'DELETE', headers: { 'Token': localStorage.getItem('auth_token') } })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { hideLoadingMask(); showToast(d.message, d.code === 0 ? 'success' : 'error'); if (d.code === 0) loadLogs(1); });
+}
+
+function escapeHTML(str) { if (!str) return ''; return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escapeAttr(str) { if (!str) return ''; return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+loadLogs(1);
+setInterval(function() { loadLogs(logPage); }, 10000);
+</script>
+{{template "_layout_end.html" .}}
